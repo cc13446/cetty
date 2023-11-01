@@ -671,6 +671,4 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             }
         }
     }
-
-
 }

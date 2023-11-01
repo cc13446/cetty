@@ -27,7 +27,6 @@ public abstract class AbstractFuture<V> implements Future<V> {
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        //阻塞了用户设定的时间之后
         if (await(timeout, unit)) {
             Throwable cause = cause();
             if (Objects.isNull(cause)) {

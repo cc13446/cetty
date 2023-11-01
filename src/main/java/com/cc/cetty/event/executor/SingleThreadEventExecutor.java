@@ -1,13 +1,14 @@
 package com.cc.cetty.event.executor;
 
+import com.cc.cetty.event.reject.RejectedExecutionHandlers;
+import com.cc.cetty.event.factory.EventLoopTaskQueueFactory;
+import com.cc.cetty.event.reject.RejectedExecutionHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  * 单线程的事件执行器
@@ -23,17 +24,32 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
      */
     protected static final int DEFAULT_MAX_PENDING_TASKS = Integer.MAX_VALUE;
 
+    private static final int ST_NOT_STARTED = 0;
+
+    private static final int ST_STARTED = 1;
+
+    private volatile int state = ST_NOT_STARTED;
+
+    private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER = AtomicIntegerFieldUpdater.newUpdater(SingleThreadEventExecutor.class, "state");
+
     private final Queue<Runnable> taskQueue;
 
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
-    private volatile boolean start = false;
+    private Executor executor;
 
     private Thread thread;
 
-    public SingleThreadEventExecutor() {
-        this.taskQueue = newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
-        this.rejectedExecutionHandler = new ThreadPoolExecutor.AbortPolicy();
+    protected SingleThreadEventExecutor(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory) {
+        this(executor, queueFactory, threadFactory, RejectedExecutionHandlers.reject());
+    }
+
+    protected SingleThreadEventExecutor(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory, RejectedExecutionHandler rejectedExecutionHandler) {
+        if (Objects.isNull(executor)) {
+            this.executor = new ThreadPerTaskExecutor(threadFactory);
+        }
+        this.taskQueue = queueFactory == null ? newTaskQueue(DEFAULT_MAX_PENDING_TASKS) : queueFactory.newTaskQueue(DEFAULT_MAX_PENDING_TASKS);
+        this.rejectedExecutionHandler = rejectedExecutionHandler;
     }
 
     /**
@@ -56,14 +72,30 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
      * 开启事件处理线程
      */
     private void startThread() {
-        if (start) {
-            return;
+        if (state == ST_NOT_STARTED) {
+            if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
+                boolean success = false;
+                try {
+                    doStartThread();
+                    success = true;
+                } finally {
+                    if (!success) {
+                        STATE_UPDATER.compareAndSet(this, ST_STARTED, ST_NOT_STARTED);
+                    }
+                }
+            }
         }
-        start = true;
-        // 执行run方法，对io事件进行处理
-        thread = new Thread(SingleThreadEventExecutor.this::run);
-        thread.start();
-        log.info("事件处理线程启动");
+    }
+
+    /**
+     * 开启事件处理线程
+     */
+    private void doStartThread() {
+        executor.execute(() -> {
+            thread = Thread.currentThread();
+            SingleThreadEventExecutor.this.run();
+            log.error("单线程执行器的线程执行错误");
+        });
     }
 
 
@@ -103,7 +135,7 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
      * @param task 任务
      */
     private void rejectTask(Runnable task) {
-        // rejectedExecutionHandler.rejectedExecution(task, this);
+        rejectedExecutionHandler.rejected(task, this);
     }
 
     /**
@@ -150,6 +182,11 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
         } catch (Throwable t) {
             log.warn("A task raised an exception. Task: {}", task, t);
         }
+    }
+
+    @Override
+    public boolean inEventLoop(Thread thread) {
+        return thread == this.thread;
     }
 
     @Override

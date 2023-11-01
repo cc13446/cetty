@@ -9,4 +9,9 @@ import java.util.concurrent.Executor;
  */
 public interface EventExecutor extends EventExecutorGroup, Executor {
 
+    /**
+     * @param thread 线程
+     * @return 这个线程是否在当前的事件执行器中
+     */
+    boolean inEventLoop(Thread thread);
 }

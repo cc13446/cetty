@@ -1,11 +1,14 @@
 package com.cc.cetty.event.loop;
 
 import com.cc.cetty.event.executor.SingleThreadEventExecutor;
+import com.cc.cetty.event.factory.EventLoopTaskQueueFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * 单线程的事件循环
@@ -15,6 +18,11 @@ import java.nio.channels.SocketChannel;
  */
 @Slf4j
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
+
+    protected SingleThreadEventLoop(Executor executor, EventLoopTaskQueueFactory queueFactory, ThreadFactory threadFactory) {
+        super(executor, queueFactory, threadFactory);
+    }
+
     @Override
     public EventLoop next() {
         return this;

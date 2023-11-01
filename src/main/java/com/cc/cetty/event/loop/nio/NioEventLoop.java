@@ -1,6 +1,7 @@
 package com.cc.cetty.event.loop.nio;
 
 import com.cc.cetty.event.loop.SingleThreadEventLoop;
+import com.cc.cetty.event.factory.EventLoopTaskQueueFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 /**
@@ -32,7 +34,15 @@ public class NioEventLoop extends SingleThreadEventLoop {
     private Consumer<SocketChannel> acceptCallBack;
 
     public NioEventLoop() {
-        this.provider = SelectorProvider.provider();
+        this(null, SelectorProvider.provider(), null);
+    }
+
+    public NioEventLoop(Executor executor, SelectorProvider selectorProvider, EventLoopTaskQueueFactory queueFactory) {
+        super(executor, queueFactory, Thread::new);
+        if (Objects.isNull(selectorProvider)) {
+            throw new NullPointerException("selectorProvider");
+        }
+        this.provider = selectorProvider;
         this.selector = openSelector();
     }
 

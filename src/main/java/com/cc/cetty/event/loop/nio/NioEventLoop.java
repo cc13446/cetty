@@ -7,11 +7,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * nio 事件循环
@@ -25,6 +28,8 @@ public class NioEventLoop extends SingleThreadEventLoop {
     private final SelectorProvider provider;
 
     private Selector selector;
+
+    private Consumer<SocketChannel> acceptCallBack;
 
     public NioEventLoop() {
         this.provider = SelectorProvider.provider();
@@ -103,24 +108,45 @@ public class NioEventLoop extends SingleThreadEventLoop {
      * @throws IOException 处理 select key 发生的异常
      */
     private void processSelectedKey(SelectionKey key) throws IOException {
+        if (key.isConnectable()) {
+            SocketChannel channel = (SocketChannel) key.channel();
+            if (channel.finishConnect()) {
+                channel.register(selector, SelectionKey.OP_READ);
+            } else {
+                channel.close();
+            }
+        }
         if (key.isReadable()) {
             SocketChannel channel = (SocketChannel) key.channel();
             ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
             int len = channel.read(byteBuffer);
             if (len == -1) {
-                log.info("客户端通道关闭");
+                log.info("通道关闭");
                 channel.close();
                 return;
             }
             byte[] bytes = new byte[len];
             byteBuffer.flip();
             byteBuffer.get(bytes);
-            log.info("收到客户端发送的数据:{}", new String(bytes, StandardCharsets.UTF_8));
+            log.info("收到对方发送的数据:{}", new String(bytes, StandardCharsets.UTF_8));
+        }
+        if (key.isAcceptable()) {
+            ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
+            SocketChannel socketChannel = serverSocketChannel.accept();
+            if (Objects.nonNull(acceptCallBack)) {
+                acceptCallBack.accept(socketChannel);
+            }
+
         }
     }
 
     @Override
     public Selector getSelector() {
         return selector;
+    }
+
+    @Override
+    public void setAcceptCallback(Consumer<SocketChannel> callBack) {
+        this.acceptCallBack = callBack;
     }
 }

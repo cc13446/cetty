@@ -2,6 +2,7 @@ package com.cc.cetty.event.loop;
 
 import com.cc.cetty.event.executor.MultiThreadEventExecutorGroup;
 
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -32,7 +33,12 @@ public abstract class MultiThreadEventLoopGroup extends MultiThreadEventExecutor
     protected abstract EventLoop newChild();
 
     @Override
-    public void register(SocketChannel channel, EventLoop eventLoop) {
-        next().register(channel, eventLoop);
+    public void register(SocketChannel channel, EventLoop eventLoop, int ops) {
+        next().register(channel, eventLoop, ops);
+    }
+
+    @Override
+    public void register(ServerSocketChannel channel, EventLoop eventLoop, int ops) {
+        next().register(channel, eventLoop, ops);
     }
 }

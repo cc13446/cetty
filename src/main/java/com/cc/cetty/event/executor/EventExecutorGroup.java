@@ -1,6 +1,8 @@
 package com.cc.cetty.event.executor;
 
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * 管理多个 Event Executor
@@ -22,4 +24,9 @@ public interface EventExecutorGroup {
      * @param unit time unit
      */
     void shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit);
+
+    /**
+     * 添加accept消息接受到客户端连接的回调
+     */
+    void setAcceptCallback(Consumer<SocketChannel> callBack);
 }

@@ -1,6 +1,8 @@
 package com.cc.cetty.event.executor;
 
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * 多线程事件执行器组
@@ -49,6 +51,13 @@ public abstract class MultiThreadEventExecutorGroup implements EventExecutorGrou
     public void shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
         for (EventExecutor executor : eventExecutor) {
             executor.shutdownGracefully(quietPeriod, timeout, unit);
+        }
+    }
+
+    @Override
+    public void setAcceptCallback(Consumer<SocketChannel> callBack) {
+        for (EventExecutor executor : eventExecutor) {
+            executor.setAcceptCallback(callBack);
         }
     }
 }

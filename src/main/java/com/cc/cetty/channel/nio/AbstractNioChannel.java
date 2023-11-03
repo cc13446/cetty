@@ -115,6 +115,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         }
     }
 
+    @Override
+    protected void doWrite(Object msg) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * 连接
      *

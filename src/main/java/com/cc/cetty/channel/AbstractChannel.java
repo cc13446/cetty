@@ -140,6 +140,12 @@ public abstract class AbstractChannel implements Channel {
     }
 
     @Override
+    public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
+        unsafe.bind(localAddress, promise);
+        return promise;
+    }
+
+    @Override
     public ChannelFuture connect(SocketAddress remoteAddress) {
         return null;
     }
@@ -147,32 +153,6 @@ public abstract class AbstractChannel implements Channel {
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
         return null;
-    }
-
-    @Override
-    public ChannelFuture disconnect() {
-        return null;
-    }
-
-    @Override
-    public ChannelFuture close() {
-        return null;
-    }
-
-    @Override
-    public ChannelFuture deregister() {
-        return null;
-    }
-
-    @Override
-    public Channel flush() {
-        return null;
-    }
-
-    @Override
-    public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
-        unsafe.bind(localAddress, promise);
-        return promise;
     }
 
     @Override
@@ -187,12 +167,27 @@ public abstract class AbstractChannel implements Channel {
     }
 
     @Override
+    public ChannelFuture disconnect() {
+        return null;
+    }
+
+    @Override
     public ChannelFuture disconnect(ChannelPromise promise) {
         return null;
     }
 
     @Override
+    public ChannelFuture close() {
+        return null;
+    }
+
+    @Override
     public ChannelFuture close(ChannelPromise promise) {
+        return null;
+    }
+
+    @Override
+    public ChannelFuture deregister() {
         return null;
     }
 
@@ -214,6 +209,11 @@ public abstract class AbstractChannel implements Channel {
 
     @Override
     public ChannelFuture write(Object msg, ChannelPromise promise) {
+        return null;
+    }
+
+    @Override
+    public Channel flush() {
         return null;
     }
 
@@ -429,6 +429,8 @@ public abstract class AbstractChannel implements Channel {
     protected abstract void doBind(SocketAddress localAddress) throws Exception;
 
     protected abstract void doBeginRead() throws Exception;
+
+    protected abstract void doWrite(Object msg) throws Exception;
 
     protected abstract void doClose() throws Exception;
 

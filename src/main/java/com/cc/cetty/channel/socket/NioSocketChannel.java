@@ -127,4 +127,11 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         return len;
     }
 
+    @Override
+    protected void doWrite(Object msg) throws Exception {
+        SocketChannel socketChannel = javaChannel();
+        ByteBuffer buffer = (ByteBuffer) msg;
+        socketChannel.write(buffer);
+    }
+
 }

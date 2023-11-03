@@ -1,5 +1,6 @@
 package com.cc.cetty.channel;
 
+import com.cc.cetty.attribute.DefaultAttributeMap;
 import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
@@ -16,7 +17,7 @@ import java.util.Objects;
  * @date: 2023/11/2
  */
 @Slf4j
-public abstract class AbstractChannel implements Channel {
+public abstract class AbstractChannel extends DefaultAttributeMap implements Channel {
 
     /**
      * 用于关闭 future

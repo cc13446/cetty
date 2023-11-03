@@ -66,7 +66,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel {
     }
 
     @Override
-    protected ServerSocketChannel javaChannel() {
+    public ServerSocketChannel javaChannel() {
         return (ServerSocketChannel) super.javaChannel();
     }
 

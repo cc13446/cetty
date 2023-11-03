@@ -48,7 +48,7 @@ public class NioSocketChannel extends AbstractNioByteChannel {
     }
 
     @Override
-    protected SocketChannel javaChannel() {
+    public SocketChannel javaChannel() {
         return (SocketChannel) super.javaChannel();
     }
 

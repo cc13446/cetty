@@ -1,10 +1,11 @@
-package com.cc.cetty.promise.listener;
+package com.cc.cetty.async.listener;
 
-import com.cc.cetty.promise.future.Future;
+import com.cc.cetty.async.future.Future;
 
 import java.util.EventListener;
 
 /**
+ * 监听器接口
  * @author: cc
  * @date: 2023/11/1
  */

@@ -1,4 +1,4 @@
-package com.cc.cetty.promise.future;
+package com.cc.cetty.async.future;
 
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -7,6 +7,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * 对 get 方法做实现
+ * promise 作为其子类并不关注 get 方法
+ *
  * @author: cc
  * @date: 2023/11/1
  */

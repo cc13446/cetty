@@ -1,12 +1,19 @@
 package com.cc.cetty.bootstrap;
 
+import com.cc.cetty.channel.Channel;
+import com.cc.cetty.channel.async.future.ChannelFuture;
+import com.cc.cetty.channel.async.listener.ChannelFutureListener;
+import com.cc.cetty.channel.async.promise.ChannelPromise;
+import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
+import com.cc.cetty.channel.factory.ChannelFactory;
+import com.cc.cetty.channel.factory.ReflectiveChannelFactory;
 import com.cc.cetty.event.loop.EventLoopGroup;
+import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
+import java.util.Objects;
 
 /**
  * 启动类
@@ -15,28 +22,17 @@ import java.nio.channels.SocketChannel;
  * @date: 2023/10/31
  */
 @Slf4j
-public class Bootstrap {
+public class Bootstrap<C extends Channel> {
 
     /**
      * 事件循环管理者
      */
-    private EventLoopGroup workGroup;
+    private EventLoopGroup workerGroup;
 
     /**
-     * 客户端socket
+     * channel 工厂
      */
-    private SocketChannel socketChannel;
-
-    /**
-     * 配置客户端连接socket
-     *
-     * @param socketChannel channel
-     * @return this
-     */
-    public Bootstrap socketChannel(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
-        return this;
-    }
+    private volatile ChannelFactory<? extends Channel> channelFactory;
 
     /**
      * 配置事件循环管理者
@@ -44,45 +40,127 @@ public class Bootstrap {
      * @param eventLoopGroup group
      * @return this
      */
-    public Bootstrap group(EventLoopGroup eventLoopGroup) {
-        this.workGroup = eventLoopGroup;
+    public Bootstrap<C> group(EventLoopGroup eventLoopGroup) {
+        this.workerGroup = eventLoopGroup;
         return this;
     }
 
     /**
-     * 客户端连接
+     * 配置 channel 类型
      *
-     * @param host     ip
+     * @param channelClass class
+     * @return this
+     */
+    public Bootstrap<C> channel(Class<? extends C> channelClass) {
+        this.channelFactory = new ReflectiveChannelFactory<C>(channelClass);
+        return this;
+    }
+
+    /**
+     * 连接
+     *
+     * @param inetHost ip
      * @param inetPort port
+     * @return future
      */
-    public void connect(String host, int inetPort) {
-        connect(new InetSocketAddress(host, inetPort));
+    public ChannelFuture connect(String inetHost, int inetPort) {
+        return connect(new InetSocketAddress(inetHost, inetPort));
     }
 
     /**
-     * @param localAddress address
+     * 连接
+     *
+     * @param remoteAddress address
+     * @return future
      */
-    public void connect(SocketAddress localAddress) {
-        doConnect(localAddress);
+    public ChannelFuture connect(SocketAddress remoteAddress) {
+        AssertUtils.checkNotNull(remoteAddress);
+        return doResolveAndConnect(remoteAddress, null);
     }
 
     /**
-     * @param localAddress address
+     * 连接
+     *
+     * @param remoteAddress address
+     * @param localAddress  address
+     * @return future
      */
-    private void doConnect(SocketAddress localAddress) {
-        this.workGroup.register(socketChannel, this.workGroup.next(), SelectionKey.OP_CONNECT);
-        doConnect0(localAddress);
+    public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
+        AssertUtils.checkNotNull(remoteAddress);
+        return doResolveAndConnect(remoteAddress, localAddress);
     }
 
-    private void doConnect0(SocketAddress localAddress) {
-        this.workGroup.next().execute(() -> {
-            try {
-                socketChannel.connect(localAddress);
-                log.info("客户端channel连接服务器成功");
-            } catch (Exception e) {
-                log.error(e.getMessage());
+    /**
+     * 注册、连接
+     *
+     * @param remoteAddress address
+     * @param localAddress  address
+     * @return future
+     */
+    private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
+        final ChannelFuture regFuture = initAndRegister();
+        final Channel channel = regFuture.channel();
+        if (regFuture.isDone()) {
+            if (!regFuture.isSuccess()) {
+                return regFuture;
             }
-        });
+            // 成功的情况下，直接开始执行绑定端口号的操作,首先创建一个future
+            ChannelPromise promise = new DefaultChannelPromise(channel);
+            return doResolveAndConnect0(remoteAddress, localAddress, promise);
+        } else {
+            final ChannelPromise promise = new DefaultChannelPromise(channel);
+            regFuture.addListener((ChannelFutureListener) future -> {
+                Throwable cause = future.cause();
+                if (Objects.nonNull(cause)) {
+                    promise.setFailure(cause);
+                } else {
+                    doResolveAndConnect0(remoteAddress, localAddress, promise);
+                }
+            });
+            return promise;
+        }
+    }
+
+    /**
+     * 连接
+     *
+     * @param remoteAddress address
+     * @param localAddress  address
+     * @param promise       promise
+     * @return future
+     */
+    private ChannelFuture doResolveAndConnect0(SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise promise) {
+        try {
+            doConnect(remoteAddress, localAddress, promise);
+        } catch (Throwable cause) {
+            promise.tryFailure(cause);
+        }
+        return promise;
+    }
+
+    /**
+     * 连接
+     *
+     * @param remoteAddress  address
+     * @param localAddress   address
+     * @param connectPromise promise
+     */
+    private void doConnect(final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise connectPromise) {
+        final Channel channel = connectPromise.channel();
+        channel.eventLoop().execute(() ->
+                channel.connect(remoteAddress, localAddress, connectPromise)
+                        .addListener(ChannelFutureListener.CLOSE_ON_FAILURE));
+    }
+
+    /**
+     * 初始化并注册
+     *
+     * @return future
+     */
+    final ChannelFuture initAndRegister() {
+        Channel channel;
+        channel = channelFactory.newChannel();
+        return workerGroup.next().register(channel);
     }
 
 }

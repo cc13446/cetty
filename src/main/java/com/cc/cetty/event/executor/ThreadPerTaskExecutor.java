@@ -1,8 +1,8 @@
 package com.cc.cetty.event.executor;
 
+import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
@@ -19,9 +19,7 @@ public class ThreadPerTaskExecutor implements Executor {
     private final ThreadFactory threadFactory;
 
     public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
-        if (Objects.isNull(threadFactory)) {
-            throw new NullPointerException("threadFactory");
-        }
+        AssertUtils.checkNotNull(threadFactory);
         this.threadFactory = threadFactory;
     }
 

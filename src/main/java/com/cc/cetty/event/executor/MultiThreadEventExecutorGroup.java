@@ -1,8 +1,6 @@
 package com.cc.cetty.event.executor;
 
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * 多线程事件执行器组
@@ -12,9 +10,8 @@ import java.util.function.Consumer;
  */
 public abstract class MultiThreadEventExecutorGroup implements EventExecutorGroup {
 
-
     /**
-     * 多个事件执行器
+     * 事件执行器数组
      */
     private final EventExecutor[] eventExecutor;
 
@@ -54,10 +51,4 @@ public abstract class MultiThreadEventExecutorGroup implements EventExecutorGrou
         }
     }
 
-    @Override
-    public void setAcceptCallback(Consumer<SocketChannel> callBack) {
-        for (EventExecutor executor : eventExecutor) {
-            executor.setAcceptCallback(callBack);
-        }
-    }
 }

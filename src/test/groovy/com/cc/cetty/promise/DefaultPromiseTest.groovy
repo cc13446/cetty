@@ -1,6 +1,7 @@
 package com.cc.cetty.promise
 
-
+import com.cc.cetty.async.promise.DefaultPromise
+import com.cc.cetty.async.promise.Promise
 import com.cc.cetty.event.loop.nio.NioEventLoopGroup
 import spock.lang.Specification
 

@@ -1,9 +1,9 @@
 package com.cc.cetty.event.loop;
 
+import com.cc.cetty.channel.Channel;
+import com.cc.cetty.channel.async.future.ChannelFuture;
+import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.event.executor.EventExecutorGroup;
-
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 
 /**
  * 管理多个 EventLoop
@@ -24,21 +24,8 @@ public interface EventLoopGroup extends EventExecutorGroup {
     @Override
     EventLoop next();
 
-    /**
-     * 将连接注册到事件循环中
-     *
-     * @param channel   channel
-     * @param eventLoop eventLoop
-     * @param ops       事件
-     */
-    void register(SocketChannel channel, EventLoop eventLoop, int ops);
+    ChannelFuture register(Channel channel);
 
-    /**
-     * 将服务器绑定socket注册到时间循环
-     *
-     * @param channel   channel
-     * @param eventLoop eventLoop
-     * @param ops       事件
-     */
-    void register(ServerSocketChannel channel, EventLoop eventLoop, int ops);
+    ChannelFuture register(ChannelPromise promise);
+
 }

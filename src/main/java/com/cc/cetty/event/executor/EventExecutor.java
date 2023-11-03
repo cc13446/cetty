@@ -14,4 +14,5 @@ public interface EventExecutor extends EventExecutorGroup, Executor {
      * @return 这个线程是否在当前的事件执行器中
      */
     boolean inEventLoop(Thread thread);
+
 }

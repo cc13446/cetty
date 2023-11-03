@@ -1,13 +1,17 @@
 package com.cc.cetty.event.executor;
 
-import com.cc.cetty.event.reject.RejectedExecutionHandlers;
 import com.cc.cetty.event.factory.EventLoopTaskQueueFactory;
 import com.cc.cetty.event.reject.RejectedExecutionHandler;
+import com.cc.cetty.event.reject.RejectedExecutionHandlers;
+import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
@@ -98,7 +102,6 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
         });
     }
 
-
     /**
      * 对io事件进行处理
      */
@@ -110,10 +113,7 @@ public abstract class SingleThreadEventExecutor implements EventExecutor {
      * @param task 任务
      */
     private void addTask(Runnable task) {
-        if (Objects.isNull(task)) {
-            throw new NullPointerException("Task cannot be null");
-        }
-        //如果添加失败，执行拒绝策略
+        AssertUtils.checkNotNull(task);
         if (!offerTask(task)) {
             rejectTask(task);
         }

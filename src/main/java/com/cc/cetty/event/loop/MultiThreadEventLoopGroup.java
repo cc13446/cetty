@@ -1,9 +1,9 @@
 package com.cc.cetty.event.loop;
 
+import com.cc.cetty.channel.Channel;
+import com.cc.cetty.channel.async.future.ChannelFuture;
+import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.event.executor.MultiThreadEventExecutorGroup;
-
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 
 /**
  * 多线程事件循环管理器
@@ -33,12 +33,12 @@ public abstract class MultiThreadEventLoopGroup extends MultiThreadEventExecutor
     protected abstract EventLoop newChild();
 
     @Override
-    public void register(SocketChannel channel, EventLoop eventLoop, int ops) {
-        next().register(channel, eventLoop, ops);
+    public ChannelFuture register(Channel channel) {
+        return next().register(channel);
     }
 
     @Override
-    public void register(ServerSocketChannel channel, EventLoop eventLoop, int ops) {
-        next().register(channel, eventLoop, ops);
+    public ChannelFuture register(ChannelPromise promise) {
+        return next().register(promise);
     }
 }

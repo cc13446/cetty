@@ -1,12 +1,14 @@
 package com.cc.cetty.event.loop;
 
+import com.cc.cetty.channel.Channel;
+import com.cc.cetty.channel.async.future.ChannelFuture;
+import com.cc.cetty.channel.async.promise.ChannelPromise;
+import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
 import com.cc.cetty.event.executor.SingleThreadEventExecutor;
 import com.cc.cetty.event.factory.EventLoopTaskQueueFactory;
+import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
@@ -29,50 +31,16 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     }
 
     @Override
-    public void register(SocketChannel channel, EventLoop eventLoop, int ops) {
-        eventLoop.execute(() -> {
-            try {
-                register0(channel, eventLoop, ops);
-            } catch (IOException e) {
-                log.error("注册客户端连接失败");
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    /**
-     * 客户端连接注册
-     *
-     * @param channel   channel
-     * @param eventLoop eventLoop
-     * @throws IOException IOException
-     */
-    private void register0(SocketChannel channel, EventLoop eventLoop, int ops) throws IOException {
-        channel.configureBlocking(false);
-        channel.register(eventLoop.getSelector(), ops);
+    public ChannelFuture register(Channel channel) {
+        // 在执行任务的时候，channel和promise也是绑定的
+        return register(new DefaultChannelPromise(channel, this));
     }
 
     @Override
-    public void register(ServerSocketChannel channel, EventLoop eventLoop, int ops) {
-        eventLoop.execute(() -> {
-            try {
-                register0(channel, eventLoop, ops);
-            } catch (IOException e) {
-                log.error("注册服务端绑定socket失败");
-                throw new RuntimeException(e);
-            }
-        });
+    public ChannelFuture register(final ChannelPromise promise) {
+        AssertUtils.checkNotNull(promise);
+        promise.channel().unsafe().register(this, promise);
+        return promise;
     }
 
-    /**
-     * 服务端绑定socket注册
-     *
-     * @param channel   channel
-     * @param eventLoop eventLoop
-     * @throws IOException IOException
-     */
-    private void register0(ServerSocketChannel channel, EventLoop eventLoop, int ops) throws IOException {
-        channel.configureBlocking(false);
-        channel.register(eventLoop.getSelector(), ops);
-    }
 }

@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public final class NioSocketChannelConfig extends DefaultSocketChannelConfig {
     private volatile int maxBytesPerGatheringWrite = Integer.MAX_VALUE;
-    private NioSocketChannelConfig(NioSocketChannel channel, Socket javaSocket) {
+    public NioSocketChannelConfig(NioSocketChannel channel, Socket javaSocket) {
         super(channel, javaSocket);
         calculateMaxBytesPerGatheringWrite();
     }

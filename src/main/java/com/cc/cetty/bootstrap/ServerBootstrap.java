@@ -1,20 +1,16 @@
 package com.cc.cetty.bootstrap;
 
+import com.cc.cetty.attribute.AttributeKey;
+import com.cc.cetty.bootstrap.config.ServerBootstrapConfig;
 import com.cc.cetty.channel.Channel;
-import com.cc.cetty.channel.async.future.ChannelFuture;
-import com.cc.cetty.channel.async.listener.ChannelFutureListener;
-import com.cc.cetty.channel.async.promise.ChannelPromise;
-import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
 import com.cc.cetty.channel.factory.ChannelFactory;
-import com.cc.cetty.channel.factory.ReflectiveChannelFactory;
+import com.cc.cetty.config.option.ChannelOption;
 import com.cc.cetty.event.loop.EventLoopGroup;
 import com.cc.cetty.utils.AssertUtils;
-import com.cc.cetty.utils.SocketUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -24,13 +20,37 @@ import java.util.Objects;
  * @date: 2023/11/1
  */
 @Slf4j
-public class ServerBootstrap<C extends Channel> {
+public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel> {
 
-    private EventLoopGroup bossGroup;
+    private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
 
-    private EventLoopGroup workerGroup;
+    private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<>();
+
+    private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
+
+    private EventLoopGroup childGroup;
 
     private volatile ChannelFactory<? extends Channel> channelFactory;
+
+    public ServerBootstrap() {
+
+    }
+
+    public ServerBootstrap(ServerBootstrap bootstrap) {
+        super(bootstrap);
+        childGroup = bootstrap.childGroup;
+        synchronized (bootstrap.childOptions) {
+            childOptions.putAll(bootstrap.childOptions);
+        }
+        synchronized (bootstrap.childAttrs) {
+            childAttrs.putAll(bootstrap.childAttrs);
+        }
+    }
+
+    @Override
+    public ServerBootstrap group(EventLoopGroup group) {
+        return group(group, group);
+    }
 
     /**
      * 配置事件循环管理者
@@ -39,120 +59,92 @@ public class ServerBootstrap<C extends Channel> {
      * @param childGroup  group
      * @return this
      */
-    public ServerBootstrap<C> group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
-        this.bossGroup = parentGroup;
-        this.workerGroup = childGroup;
+    public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
+        super.group(parentGroup);
+        AssertUtils.checkNotNull(childGroup, "childGroup");
+        if (Objects.nonNull(this.childGroup)) {
+            throw new IllegalStateException("childGroup set already");
+        }
+        this.childGroup = childGroup;
         return this;
     }
 
-
     /**
-     * 配置 channel 类型
-     *
-     * @param channelClass class
+     * @param childOption childOption
+     * @param value       value
+     * @param <T>         T
      * @return this
      */
-    public ServerBootstrap<C> channel(Class<? extends C> channelClass) {
-        this.channelFactory = new ReflectiveChannelFactory<C>(channelClass);
+    public <T> ServerBootstrap childOption(ChannelOption<T> childOption, T value) {
+        AssertUtils.checkNotNull(childOption);
+        if (Objects.isNull(value)) {
+            synchronized (childOptions) {
+                childOptions.remove(childOption);
+            }
+        } else {
+            synchronized (childOptions) {
+                childOptions.put(childOption, value);
+            }
+        }
         return this;
     }
 
     /**
-     * 绑定
-     *
-     * @param inetPort port
-     * @return future
+     * @param childKey childKey
+     * @param value    value
+     * @param <T>      T
+     * @return this
      */
-    public ChannelFuture bind(int inetPort) {
-        return bind(new InetSocketAddress(inetPort));
-    }
-
-    /**
-     * 绑定
-     *
-     * @param inetHost ip
-     * @param inetPort port
-     * @return future
-     */
-    public ChannelFuture bind(String inetHost, int inetPort) {
-        return bind(SocketUtils.socketAddress(inetHost, inetPort));
-    }
-
-    /**
-     * 绑定
-     *
-     * @param inetHost ip
-     * @param inetPort port
-     * @return future
-     */
-    public ChannelFuture bind(InetAddress inetHost, int inetPort) {
-        return bind(new InetSocketAddress(inetHost, inetPort));
-    }
-
-    /**
-     * 绑定
-     *
-     * @param localAddress address
-     * @return future
-     */
-    public ChannelFuture bind(SocketAddress localAddress) {
-        return doBind(AssertUtils.checkNotNull(localAddress));
-    }
-
-    /**
-     * 注册并绑定
-     *
-     * @param localAddress address
-     * @return future
-     */
-    private ChannelFuture doBind(SocketAddress localAddress) {
-        final ChannelFuture regFuture = initAndRegister();
-        Channel channel = regFuture.channel();
-        if (regFuture.isDone()) {
-            ChannelPromise promise = new DefaultChannelPromise(channel);
-            doBind0(regFuture, channel, localAddress, promise);
-            return promise;
+    public <T> ServerBootstrap childAttr(AttributeKey<T> childKey, T value) {
+        AssertUtils.checkNotNull(childKey);
+        if (Objects.isNull(value)) {
+            childAttrs.remove(childKey);
         } else {
-            final ChannelPromise promise = new DefaultChannelPromise(channel);
-            regFuture.addListener((ChannelFutureListener) future -> {
-                Throwable cause = future.cause();
-                if (Objects.nonNull(cause)) {
-                    promise.setFailure(cause);
-                } else {
-                    doBind0(regFuture, channel, localAddress, promise);
-                }
-            });
-            return promise;
+            childAttrs.put(childKey, value);
         }
+        return this;
     }
 
-    /**
-     * 绑定
-     *
-     * @param regFuture    future
-     * @param channel      channel
-     * @param localAddress address
-     * @param promise      promise
-     */
-    private void doBind0(final ChannelFuture regFuture, final Channel channel, final SocketAddress localAddress, final ChannelPromise promise) {
-        channel.eventLoop().execute(() -> {
-            if (regFuture.isSuccess()) {
-                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
-            } else {
-                promise.setFailure(regFuture.cause());
+    @Override
+    protected void init(Channel channel) throws Exception {
+        final Map<ChannelOption<?>, Object> options = options0();
+        synchronized (options) {
+            // 把初始化时用户配置的参数全都放到channel的config类中
+            setChannelOptions(channel, options);
+        }
+        final Map<AttributeKey<?>, Object> attrs = attrs0();
+        synchronized (attrs) {
+            for (Map.Entry<AttributeKey<?>, Object> e : attrs.entrySet()) {
+                @SuppressWarnings("unchecked")
+                AttributeKey<Object> key = (AttributeKey<Object>) e.getKey();
+                channel.attr(key).set(e.getValue());
             }
-        });
+        }
+        // 在这里创建channel的ChannelPipeline，也就是ChannelHandler链表
+        // ChannelPipeline p = channel.pipeline();
+        // p.addLast(config.handler());
+    }
+
+    @Override
+    public ServerBootstrap validate() {
+        super.validate();
+        if (Objects.isNull(childGroup)) {
+            log.warn("childGroup is not set. Using parentGroup instead.");
+            childGroup = config.group();
+        }
+        return this;
     }
 
     /**
-     * 初始化并注册
-     *
-     * @return future
+     * @return childGroup
      */
-    final ChannelFuture initAndRegister() {
-        Channel channel;
-        channel = channelFactory.newChannel();
-        return bossGroup.next().register(channel);
+    public EventLoopGroup childGroup() {
+        return childGroup;
+    }
+
+    @Override
+    public final ServerBootstrapConfig config() {
+        return config;
     }
 
 }

@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public final class NioServerSocketChannelConfig extends DefaultServerSocketChannelConfig {
 
-    private NioServerSocketChannelConfig(NioServerSocketChannel channel, ServerSocket javaSocket) {
+    public NioServerSocketChannelConfig(NioServerSocketChannel channel, ServerSocket javaSocket) {
         super(channel, javaSocket);
     }
 

@@ -2,6 +2,8 @@ package com.cc.cetty.channel.socket;
 
 import com.cc.cetty.channel.Channel;
 import com.cc.cetty.channel.nio.AbstractNioByteChannel;
+import com.cc.cetty.config.socket.SocketChannelConfig;
+import com.cc.cetty.config.socket.nio.NioSocketChannelConfig;
 import com.cc.cetty.utils.SocketUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,6 +33,8 @@ public class NioSocketChannel extends AbstractNioByteChannel {
         }
     }
 
+    private final SocketChannelConfig config;
+
     public NioSocketChannel() {
         this(DEFAULT_SELECTOR_PROVIDER);
     }
@@ -45,6 +49,12 @@ public class NioSocketChannel extends AbstractNioByteChannel {
 
     public NioSocketChannel(Channel parent, SocketChannel socket) {
         super(parent, socket);
+        config = new NioSocketChannelConfig(this, socket.socket());
+    }
+
+    @Override
+    public SocketChannelConfig config() {
+        return config;
     }
 
     @Override

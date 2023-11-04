@@ -1,7 +1,9 @@
 package com.cc.cetty.channel;
 
+import com.cc.cetty.attribute.AttributeMap;
 import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
+import com.cc.cetty.config.ChannelConfig;
 import com.cc.cetty.event.loop.EventLoop;
 
 import java.net.SocketAddress;
@@ -9,7 +11,7 @@ import java.net.SocketAddress;
 /**
  * netty 包装的channel
  */
-public interface Channel extends ChannelOutboundInvoker {
+public interface Channel extends AttributeMap, ChannelOutboundInvoker {
 
     /**
      * 原本有单独的类的，这里用long类型替代
@@ -22,6 +24,11 @@ public interface Channel extends ChannelOutboundInvoker {
      * @return channel 绑定的 event loop
      */
     EventLoop eventLoop();
+
+    /**
+     * @return config
+     */
+    ChannelConfig config();
 
     /**
      * 当创建的是客户端channel时，parent为serverSocketChannel

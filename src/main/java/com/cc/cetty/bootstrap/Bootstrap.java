@@ -1,18 +1,20 @@
 package com.cc.cetty.bootstrap;
 
+import com.cc.cetty.attribute.AttributeKey;
+import com.cc.cetty.bootstrap.config.BootstrapConfig;
 import com.cc.cetty.channel.Channel;
 import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.listener.ChannelFutureListener;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
 import com.cc.cetty.channel.factory.ChannelFactory;
-import com.cc.cetty.channel.factory.ReflectiveChannelFactory;
-import com.cc.cetty.event.loop.EventLoopGroup;
+import com.cc.cetty.config.option.ChannelOption;
 import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,12 +24,12 @@ import java.util.Objects;
  * @date: 2023/10/31
  */
 @Slf4j
-public class Bootstrap<C extends Channel> {
+public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     /**
-     * 事件循环管理者
+     * config
      */
-    private EventLoopGroup workerGroup;
+    private final BootstrapConfig config = new BootstrapConfig(this);
 
     /**
      * channel 工厂
@@ -35,25 +37,31 @@ public class Bootstrap<C extends Channel> {
     private volatile ChannelFactory<? extends Channel> channelFactory;
 
     /**
-     * 配置事件循环管理者
-     *
-     * @param eventLoopGroup group
-     * @return this
+     * 远程地址
      */
-    public Bootstrap<C> group(EventLoopGroup eventLoopGroup) {
-        this.workerGroup = eventLoopGroup;
-        return this;
+    private volatile SocketAddress remoteAddress;
+
+    public Bootstrap() {
+
+    }
+
+    public Bootstrap(Bootstrap bootstrap) {
+        super(bootstrap);
+        remoteAddress = bootstrap.remoteAddress;
     }
 
     /**
-     * 配置 channel 类型
-     *
-     * @param channelClass class
+     * @param remoteAddress 远程地址
      * @return this
      */
-    public Bootstrap<C> channel(Class<? extends C> channelClass) {
-        this.channelFactory = new ReflectiveChannelFactory<C>(channelClass);
+    public Bootstrap remoteAddress(SocketAddress remoteAddress) {
+        this.remoteAddress = remoteAddress;
         return this;
+    }
+
+    @Override
+    public final BootstrapConfig config() {
+        return config;
     }
 
     /**
@@ -152,15 +160,26 @@ public class Bootstrap<C extends Channel> {
                         .addListener(ChannelFutureListener.CLOSE_ON_FAILURE));
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void init(Channel channel) throws Exception {
+        final Map<ChannelOption<?>, Object> options = options0();
+        synchronized (options) {
+            setChannelOptions(channel, options);
+        }
+        final Map<AttributeKey<?>, Object> attrs = attrs0();
+        synchronized (attrs) {
+            for (Map.Entry<AttributeKey<?>, Object> e : attrs.entrySet()) {
+                channel.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
+            }
+        }
+    }
+
     /**
-     * 初始化并注册
-     *
-     * @return future
+     * @return 远程地址
      */
-    final ChannelFuture initAndRegister() {
-        Channel channel;
-        channel = channelFactory.newChannel();
-        return workerGroup.next().register(channel);
+    public final SocketAddress remoteAddress() {
+        return remoteAddress;
     }
 
 }

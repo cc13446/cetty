@@ -22,7 +22,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     /**
      * 用于关闭 future
      */
-    static final class CloseFuture extends DefaultChannelPromise {
+    public static final class CloseFuture extends DefaultChannelPromise {
 
         CloseFuture(AbstractChannel ch) {
             super(ch);
@@ -230,16 +230,6 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public ChannelPromise newPromise() {
-        return null;
-    }
-
-    @Override
-    public ChannelFuture newSucceededFuture() {
-        return null;
-    }
-
-    @Override
-    public ChannelFuture newFailedFuture(Throwable cause) {
         return null;
     }
 

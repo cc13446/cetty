@@ -1,4 +1,4 @@
-package com.cc.cetty.channel;
+package com.cc.cetty.pipeline.invoker;
 
 import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
@@ -37,6 +37,11 @@ public interface ChannelOutboundInvoker {
 
     ChannelFuture deregister(ChannelPromise promise);
 
+    /**
+     * 原本这个方法叫read，这里觉得和实际作用不同改名
+     *
+     * @return this
+     */
     ChannelOutboundInvoker beginRead();
 
     ChannelFuture write(Object msg);
@@ -51,7 +56,4 @@ public interface ChannelOutboundInvoker {
 
     ChannelPromise newPromise();
 
-    ChannelFuture newSucceededFuture();
-
-    ChannelFuture newFailedFuture(Throwable cause);
 }

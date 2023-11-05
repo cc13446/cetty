@@ -31,7 +31,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 doReadBytes(byteBuf);
             } catch (Exception e) {
-                log.error("Fail to read", e);
+                log.error("Fail to beginRead", e);
             }
         }
     }

@@ -4,7 +4,7 @@ import com.cc.cetty.bootstrap.AbstractBootstrap;
 import com.cc.cetty.channel.Channel;
 import com.cc.cetty.channel.factory.ChannelFactory;
 import com.cc.cetty.event.loop.EventLoopGroup;
-import com.cc.cetty.pipeline.ChannelHandler;
+import com.cc.cetty.pipeline.handler.ChannelHandler;
 import com.cc.cetty.utils.AssertUtils;
 
 import java.net.SocketAddress;

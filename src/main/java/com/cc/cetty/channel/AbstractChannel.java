@@ -5,6 +5,8 @@ import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
 import com.cc.cetty.event.loop.EventLoop;
+import com.cc.cetty.pipeline.ChannelPipeline;
+import com.cc.cetty.pipeline.DefaultChannelPipeline;
 import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,6 +61,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private final long id;
 
+    private final DefaultChannelPipeline pipeline;
+
     private final CloseFuture closeFuture = new CloseFuture(this);
 
     private volatile SocketAddress localAddress;
@@ -75,12 +79,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         this.parent = parent;
         unsafe = newUnsafe();
         id = System.currentTimeMillis();
+        pipeline = newChannelPipeline();
     }
 
     protected AbstractChannel(Channel parent, long id) {
         this.parent = parent;
         this.id = id;
         unsafe = newUnsafe();
+        pipeline = newChannelPipeline();
+    }
+
+    protected DefaultChannelPipeline newChannelPipeline() {
+        return new DefaultChannelPipeline(this);
     }
 
     @Override
@@ -93,6 +103,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         EventLoop eventLoop = this.eventLoop;
         AssertUtils.checkNotNull(eventLoop);
         return eventLoop;
+    }
+
+    @Override
+    public ChannelPipeline pipeline() {
+        return pipeline;
     }
 
     @Override

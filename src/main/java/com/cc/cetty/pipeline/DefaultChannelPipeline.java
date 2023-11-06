@@ -51,7 +51,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     private boolean registered;
 
-    protected DefaultChannelPipeline(Channel channel) {
+    public DefaultChannelPipeline(Channel channel) {
         this.channel = AssertUtils.checkNotNull(channel);
         tail = new TailContext(this);
         head = new HeadContext(this);

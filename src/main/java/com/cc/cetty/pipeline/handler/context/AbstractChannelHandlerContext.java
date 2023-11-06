@@ -405,7 +405,7 @@ public abstract class AbstractChannelHandlerContext implements ChannelHandlerCon
     @Override
     public ChannelFuture bind(final SocketAddress localAddress, final ChannelPromise promise) {
         AssertUtils.checkNotNull(localAddress);
-        //找到对bind事件感兴趣的handler
+        // 找到对bind事件感兴趣的handler
         final AbstractChannelHandlerContext next = findContextOutbound(MASK_BIND);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop(Thread.currentThread())) {

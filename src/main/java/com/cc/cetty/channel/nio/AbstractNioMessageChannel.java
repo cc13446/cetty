@@ -1,6 +1,7 @@
 package com.cc.cetty.channel.nio;
 
 import com.cc.cetty.channel.Channel;
+import com.cc.cetty.pipeline.ChannelPipeline;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.channels.SelectableChannel;
@@ -45,6 +46,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         public void read() {
             assert eventLoop().inEventLoop(Thread.currentThread());
             Throwable exception = null;
+            final ChannelPipeline pipeline = pipeline();
             try {
                 do {
                     int localRead = doReadMessages(readBuf);
@@ -58,7 +60,8 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             for (Object o : readBuf) {
                 readPending = false;
                 Channel child = (Channel) o;
-                log.info("Received client channel");
+                // 利用 ServerBootstrap的内部类ServerBootstrapAcceptor 把每一个客户端的channel注册到工作线程上
+                pipeline.fireChannelRead(child);
             }
             readBuf.clear();
             if (Objects.nonNull(exception)) {

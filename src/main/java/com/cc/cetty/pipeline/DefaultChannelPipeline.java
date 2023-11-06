@@ -31,7 +31,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private static final String TAIL_NAME = generateName0(TailContext.class);
 
-    private static final ThreadLocal<Map<Class<?>, String>> nameCaches = ThreadLocal.withInitial(() -> new WeakHashMap<>());
+    private static final ThreadLocal<Map<Class<?>, String>> nameCaches = ThreadLocal.withInitial(WeakHashMap::new);
 
     private final AbstractChannelHandlerContext head;
 
@@ -568,7 +568,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     /**
      * channel注册成功的时候，会执行它，然后回调链表中的节点的方法
      */
-    final void invokeHandlerAddedIfNeeded() {
+    public final void invokeHandlerAddedIfNeeded() {
         assert channel.eventLoop().inEventLoop(Thread.currentThread());
         // 保证下面的方法只被执行一次
         if (firstRegistration) {

@@ -152,100 +152,101 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     @Override
     public ChannelFuture bind(SocketAddress localAddress) {
-        return null;
+        return pipeline.bind(localAddress);
     }
 
     @Override
     public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
-        unsafe.bind(localAddress, promise);
+        pipeline.bind(localAddress, promise);
         return promise;
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress) {
-        return null;
+        return pipeline.connect(remoteAddress);
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
-        return null;
+        return pipeline.connect(remoteAddress, localAddress);
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise) {
-        return null;
+        return pipeline.connect(remoteAddress, promise);
     }
 
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-        unsafe.connect(remoteAddress, localAddress, promise);
+        pipeline.connect(remoteAddress, localAddress, promise);
         return promise;
     }
 
     @Override
     public ChannelFuture disconnect() {
-        return null;
+        return pipeline.disconnect();
     }
 
     @Override
     public ChannelFuture disconnect(ChannelPromise promise) {
-        return null;
+        return pipeline.disconnect(promise);
     }
 
     @Override
     public ChannelFuture close() {
-        return null;
+        return pipeline.close();
     }
 
     @Override
     public ChannelFuture close(ChannelPromise promise) {
-        return null;
+        return pipeline.close(promise);
     }
 
     @Override
     public ChannelFuture deregister() {
-        return null;
+        return pipeline.deregister();
     }
 
     @Override
     public ChannelFuture deregister(ChannelPromise promise) {
-        return null;
+        return pipeline.deregister();
     }
 
     @Override
     public Channel beginRead() {
-        unsafe.beginRead();
+        pipeline.beginRead();
         return this;
     }
 
     @Override
     public ChannelFuture write(Object msg) {
-        return null;
+        return pipeline.write(msg);
     }
 
     @Override
     public ChannelFuture write(Object msg, ChannelPromise promise) {
-        return null;
+        return pipeline.write(msg, promise);
     }
 
     @Override
     public Channel flush() {
-        return null;
+        pipeline.flush();
+        return this;
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
-        return null;
+        return pipeline.writeAndFlush(msg);
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
-        return null;
+        return pipeline.writeAndFlush(msg, promise);
     }
 
     @Override
     public ChannelPromise newPromise() {
-        return null;
+        return pipeline.newPromise();
     }
 
     @Override
@@ -270,6 +271,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     protected abstract boolean isCompatible(EventLoop loop);
 
     protected abstract class AbstractUnsafe implements Unsafe {
+
+        private boolean neverRegistered = true;
 
         /**
          * 如果channel注册了，那一定是绑定的事件循环在处理
@@ -326,11 +329,31 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
+                boolean firstRegistration = neverRegistered;
                 doRegister();
+                neverRegistered = false;
                 registered = true;
+                // 回调链表中的方法，链表中的每一个节点都会执行它的run方法
+                // 在run方法中ChannelPipeline中每一个节点中handler的handlerAdded方法
+                // 在执行callHandlerAdded的时候，handler的添加状态更新为ADD_COMPLETE
+                pipeline.invokeHandlerAddedIfNeeded();
                 safeSetSuccess(promise);
-                // 给channel注册读事件
-                beginRead();
+                // channel注册成功后回调每一个handler的channelRegister方法
+                pipeline.fireChannelRegistered();
+                // 这里默认只注册一次，直接开启读取
+                // netty中有可能因为线程池满了会把某些管道的自动读取消，channel也会取消注册
+                // 当线程池恢复的时候在打开
+                // 这时候就发生两次注册了
+                if (isActive()) {
+                    if (firstRegistration) {
+                        // 如果是被动连接，这个时候可能已经active了
+                        // 触发channelActive回调
+                        pipeline.fireChannelActive();
+                    } else if (config().isAutoRead()) {
+                        //在这里有可能无法关注读事件
+                        beginRead();
+                    }
+                }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

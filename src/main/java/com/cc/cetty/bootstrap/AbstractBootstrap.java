@@ -36,14 +36,29 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     protected volatile EventLoopGroup group;
 
+    /**
+     * channel 工厂
+     */
     private volatile ChannelFactory<? extends C> channelFactory;
 
+    /**
+     * 本地地址
+     */
     private volatile SocketAddress localAddress;
 
-    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
+    /**
+     * option
+     */
+    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<>();
 
+    /**
+     * attr
+     */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<>();
 
+    /**
+     * 用户设置的channel handler
+     */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -271,6 +286,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * @return future
      */
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 初始化channel，并注册到selector上
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (Objects.nonNull(regFuture.cause())) {
@@ -281,6 +297,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
+            // 注册还没完成，通过异步的方式完成bind
             final DefaultChannelPromise promise = new DefaultChannelPromise(channel);
             regFuture.addListener((ChannelFutureListener) future -> {
                 Throwable cause = future.cause();
@@ -340,6 +357,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 初始化channel的方法，这里定义为抽象的，意味着客户端channel和服务端channel实现的方法各不相同
+     *
+     * @param channel channel
+     * @throws Exception exception
+     */
+    protected abstract void init(Channel channel) throws Exception;
+
+    /**
      * @return group
      */
     public final EventLoopGroup group() {
@@ -381,13 +406,6 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return handler;
     }
 
-    /**
-     * 初始化channel的方法，这里定义为抽象的，意味着客户端channel和服务端channel实现的方法各不相同
-     *
-     * @param channel channel
-     * @throws Exception exception
-     */
-    protected abstract void init(Channel channel) throws Exception;
 
     /**
      * @return config

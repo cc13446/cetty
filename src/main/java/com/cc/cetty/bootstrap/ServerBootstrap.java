@@ -4,7 +4,6 @@ import com.cc.cetty.attribute.AttributeKey;
 import com.cc.cetty.bootstrap.config.ServerBootstrapConfig;
 import com.cc.cetty.channel.Channel;
 import com.cc.cetty.channel.async.listener.ChannelFutureListener;
-import com.cc.cetty.channel.factory.ChannelFactory;
 import com.cc.cetty.config.option.ChannelOption;
 import com.cc.cetty.event.loop.EventLoopGroup;
 import com.cc.cetty.pipeline.ChannelPipeline;
@@ -37,8 +36,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
     private EventLoopGroup childGroup;
 
     private volatile ChannelHandler childHandler;
-
-    private volatile ChannelFactory<? extends Channel> channelFactory;
 
     public ServerBootstrap() {
 
@@ -124,7 +121,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
     }
 
     @Override
-    protected void init(Channel channel) throws Exception {
+    protected void init(Channel channel) {
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             // 把初始化时用户配置的参数全都放到channel的config类中
@@ -163,7 +160,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
         // 这时候，才会把用户设置的多个handler真正添加到ChannelPipeline中
         p.addLast(new ChannelInitializer<>() {
             @Override
-            public void initChannel(final Channel ch) throws Exception {
+            public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
                 ChannelHandler handler = config.handler();
                 if (Objects.nonNull(handler)) {
@@ -212,7 +209,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
         private final ChannelHandler childHandler;
         private final Map.Entry<ChannelOption<?>, Object>[] childOptions;
         private final Map.Entry<AttributeKey<?>, Object>[] childAttrs;
-        private final Runnable enableAutoReadTask;
 
         ServerBootstrapAcceptor(final Channel channel, EventLoopGroup childGroup, ChannelHandler childHandler,
                                 Map.Entry<ChannelOption<?>, Object>[] childOptions, Map.Entry<AttributeKey<?>, Object>[] childAttrs) {
@@ -220,7 +216,6 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Channel>
             this.childHandler = childHandler;
             this.childOptions = childOptions;
             this.childAttrs = childAttrs;
-            enableAutoReadTask = () -> channel.config().setAutoRead(true);
         }
 
         @Override

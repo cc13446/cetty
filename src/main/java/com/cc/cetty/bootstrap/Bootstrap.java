@@ -7,8 +7,8 @@ import com.cc.cetty.channel.async.future.ChannelFuture;
 import com.cc.cetty.channel.async.listener.ChannelFutureListener;
 import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
-import com.cc.cetty.channel.factory.ChannelFactory;
 import com.cc.cetty.config.option.ChannelOption;
+import com.cc.cetty.pipeline.ChannelPipeline;
 import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,11 +32,6 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     private final BootstrapConfig config = new BootstrapConfig(this);
 
     /**
-     * channel 工厂
-     */
-    private volatile ChannelFactory<? extends Channel> channelFactory;
-
-    /**
      * 远程地址
      */
     private volatile SocketAddress remoteAddress;
@@ -57,11 +52,6 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     public Bootstrap remoteAddress(SocketAddress remoteAddress) {
         this.remoteAddress = remoteAddress;
         return this;
-    }
-
-    @Override
-    public final BootstrapConfig config() {
-        return config;
     }
 
     /**
@@ -155,14 +145,15 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      */
     private void doConnect(final SocketAddress remoteAddress, final SocketAddress localAddress, final ChannelPromise connectPromise) {
         final Channel channel = connectPromise.channel();
-        channel.eventLoop().execute(() ->
-                channel.connect(remoteAddress, localAddress, connectPromise)
-                        .addListener(ChannelFutureListener.CLOSE_ON_FAILURE));
+        channel.eventLoop().execute(() -> channel.connect(remoteAddress, localAddress, connectPromise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE));
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void init(Channel channel) throws Exception {
+    protected void init(Channel channel) {
+        ChannelPipeline p = channel.pipeline();
+        // 向ChannelPipeline添加用户设置的NioSocketChannel的ChannelHandler
+        p.addLast(config.handler());
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             setChannelOptions(channel, options);
@@ -180,6 +171,11 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      */
     public final SocketAddress remoteAddress() {
         return remoteAddress;
+    }
+
+    @Override
+    public final BootstrapConfig config() {
+        return config;
     }
 
 }

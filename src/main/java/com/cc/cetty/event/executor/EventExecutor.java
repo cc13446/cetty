@@ -1,5 +1,6 @@
 package com.cc.cetty.event.executor;
 
+import com.cc.cetty.async.future.Future;
 import com.cc.cetty.async.promise.Promise;
 
 /**
@@ -17,14 +18,31 @@ public interface EventExecutor extends EventExecutorGroup {
     boolean inEventLoop(Thread thread);
 
     /**
-     * @return group
+     * @return 管理此线程的线程池
      */
     EventExecutorGroup parent();
 
     /**
+     * 新建一个 Promise
+     *
      * @param <V> V
      * @return promise
      */
     <V> Promise<V> newPromise();
+
+    /**
+     * @param result result
+     * @param <V>    V
+     * @return 已经成功的 future
+     */
+    <V> Future<V> newSucceededFuture(V result);
+
+    /**
+     *
+     * @param cause cause
+     * @return 已经失败的future
+     * @param <V> V
+     */
+    <V> Future<V> newFailedFuture(Throwable cause);
 
 }

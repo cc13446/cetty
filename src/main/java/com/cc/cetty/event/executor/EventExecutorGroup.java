@@ -3,17 +3,13 @@ package com.cc.cetty.event.executor;
 import com.cc.cetty.async.future.Future;
 import com.cc.cetty.event.executor.scheduler.ScheduledFuture;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 管理多个 Event Executor
- *
  */
-public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> {
+public interface EventExecutorGroup {
 
     /**
      * 下一个事件执行器
@@ -23,60 +19,82 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     EventExecutor next();
 
     /**
-     * 优雅关闭
+     * 执行任务
      *
-     * @return future
+     * @param command command
      */
-    Future<?> shutdownGracefully();
+    void execute(Runnable command);
 
     /**
-     * 优雅关闭
+     * 提交任务
      *
-     * @param quietPeriod quietPeriod
-     * @param timeout     timeout
-     * @param unit        time unit
+     * @param task task
      * @return future
      */
-    Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit);
-
-    /**
-     * @return 是否被关闭
-     */
-    boolean isShuttingDown();
-
-    /**
-     * @return future
-     */
-    Future<?> terminationFuture();
-
-    @Override
-    void shutdown();
-
-    @Override
-    List<Runnable> shutdownNow();
-
-    @Override
-    Iterator<EventExecutor> iterator();
-
-    @Override
     Future<?> submit(Runnable task);
 
-    @Override
+    /**
+     * 提交任务
+     *
+     * @param task   task
+     * @param result result
+     * @param <T>    T
+     * @return future
+     */
     <T> Future<T> submit(Runnable task, T result);
 
-    @Override
+    /**
+     * 提交任务
+     *
+     * @param task task
+     * @param <T>  T
+     * @return future
+     */
     <T> Future<T> submit(Callable<T> task);
 
-    @Override
+    /**
+     * 提交定时任务
+     *
+     * @param command command
+     * @param delay   delay
+     * @param unit    时间单位
+     * @return future
+     */
     ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit);
 
-    @Override
+    /**
+     * 提交定时任务
+     *
+     * @param callable callable
+     * @param delay    delay
+     * @param unit     时间单位
+     * @param <V>      V
+     * @return future
+     */
     <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit);
 
-    @Override
+    /**
+     * 提交循环任务
+     * 等待上一个执行完后才继续执行下一个
+     *
+     * @param command      command
+     * @param initialDelay init delay
+     * @param period       period
+     * @param unit         时间单位
+     * @return future
+     */
     ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit);
 
-    @Override
+    /**
+     * 提交循环任务
+     * 方法会到了固定时间，不管上一个方法有没有执行完，都会立即执行下一个方法
+     *
+     * @param command      command
+     * @param initialDelay init delay
+     * @param delay        delay
+     * @param unit         时间单位
+     * @return future
+     */
     ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit);
 
 }

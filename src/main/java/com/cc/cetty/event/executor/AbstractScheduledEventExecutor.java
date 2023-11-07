@@ -1,12 +1,14 @@
-package com.cc.cetty.event.executor.scheduler;
+package com.cc.cetty.event.executor;
 
-import com.cc.cetty.event.executor.AbstractEventExecutor;
-import com.cc.cetty.event.executor.EventExecutorGroup;
+import com.cc.cetty.event.executor.scheduler.ScheduledFuture;
+import com.cc.cetty.event.executor.scheduler.ScheduledFutureTask;
 import com.cc.cetty.priority.DefaultPriorityQueue;
 import com.cc.cetty.priority.PriorityQueue;
 import com.cc.cetty.utils.AssertUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -23,7 +25,16 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      */
     private static final Comparator<ScheduledFutureTask<?>> SCHEDULED_FUTURE_TASK_COMPARATOR = ScheduledFutureTask::compareTo;
 
-    //定时任务队列
+    /**
+     * @return 当前启动时间 ns
+     */
+    protected static long nanoTime() {
+        return ScheduledFutureTask.nanoTime();
+    }
+
+    /**
+     * 定时任务队列
+     */
     protected PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
     protected AbstractScheduledEventExecutor() {
@@ -33,23 +44,15 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         super(parent);
     }
 
-    protected static long nanoTime() {
-        return ScheduledFutureTask.nanoTime();
-    }
-
     /**
      * 得到存储定时任务的任务队列，可以看到其实现实际上是一个优先级队列
      */
     protected PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue() {
-        if (scheduledTaskQueue == null) {
+        if (Objects.isNull(scheduledTaskQueue)) {
             // 这里把定义好的比较器SCHEDULED_FUTURE_TASK_COMPARATOR传进去了
             scheduledTaskQueue = new DefaultPriorityQueue<>(SCHEDULED_FUTURE_TASK_COMPARATOR, 11);
         }
         return scheduledTaskQueue;
-    }
-
-    private static boolean isNullOrEmpty(Queue<ScheduledFutureTask<?>> queue) {
-        return queue == null || queue.isEmpty();
     }
 
     /**
@@ -59,7 +62,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         assert inEventLoop(Thread.currentThread());
         // 得到任务队列
         PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
-        if (isNullOrEmpty(scheduledTaskQueue)) {
+        if (CollectionUtils.isEmpty(scheduledTaskQueue)) {
             return;
         }
         // 把任务队列转换成数组
@@ -72,6 +75,11 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         scheduledTaskQueue.clearIgnoringIndexes();
     }
 
+    /**
+     * 拉取定时任务
+     *
+     * @return 定时任务
+     */
     protected final Runnable pollScheduledTask() {
         return pollScheduledTask(nanoTime());
     }
@@ -84,8 +92,8 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         // 得到任务队列
         Queue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
         // 从任务队列中取出首元素
-        ScheduledFutureTask<?> scheduledTask = scheduledTaskQueue == null ? null : scheduledTaskQueue.peek();
-        if (scheduledTask == null) {
+        ScheduledFutureTask<?> scheduledTask = Objects.isNull(scheduledTaskQueue) ? null : scheduledTaskQueue.peek();
+        if (Objects.isNull(scheduledTask)) {
             return null;
         }
         // 如果首任务符合被执行的条件，就将该任务返回
@@ -102,17 +110,20 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     protected final long nextScheduledTaskNano() {
         Queue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
         // 获取任务队列的头元素
-        ScheduledFutureTask<?> scheduledTask = scheduledTaskQueue == null ? null : scheduledTaskQueue.peek();
-        if (scheduledTask == null) {
+        ScheduledFutureTask<?> scheduledTask = Objects.isNull(scheduledTaskQueue) ? null : scheduledTaskQueue.peek();
+        if (Objects.isNull(scheduledTask)) {
             return -1;
         }
         // 用该任务的到期时间减去当前事件
         return Math.max(0, scheduledTask.deadlineNanos() - nanoTime());
     }
 
+    /**
+     * @return 当前的最近任务
+     */
     protected final ScheduledFutureTask<?> peekScheduledTask() {
         Queue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
-        if (scheduledTaskQueue == null) {
+        if (Objects.isNull(scheduledTaskQueue)) {
             return null;
         }
         // 获取头部元素
@@ -124,8 +135,8 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      */
     protected final boolean hasScheduledTasks() {
         Queue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
-        ScheduledFutureTask<?> scheduledTask = scheduledTaskQueue == null ? null : scheduledTaskQueue.peek();
-        return scheduledTask != null && scheduledTask.deadlineNanos() <= nanoTime();
+        ScheduledFutureTask<?> scheduledTask = Objects.isNull(scheduledTaskQueue) ? null : scheduledTaskQueue.peek();
+        return Objects.nonNull(scheduledTask) && scheduledTask.deadlineNanos() <= nanoTime();
     }
 
     /**
@@ -155,8 +166,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     }
 
     /**
-     * 下面这两个方法和java的那两个方法功能一样。大家对比着来看就行
-     * 这个方法会等待上一个执行完后才继续执行下一个，而下面那个 方法会到了固定时间，不管上一个方法有没有执行完，都会立即执行下一个方法
+     * 等待上一个执行完后才继续执行下一个
      */
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
@@ -172,6 +182,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return schedule(new ScheduledFutureTask<Void>(this, Executors.callable(command, null), ScheduledFutureTask.deadlineNanos(unit.toNanos(initialDelay)), unit.toNanos(period)));
     }
 
+    /**
+     * 方法会到了固定时间，不管上一个方法有没有执行完，都会立即执行下一个方法
+     */
     @Override
     public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
         AssertUtils.checkNotNull(command);

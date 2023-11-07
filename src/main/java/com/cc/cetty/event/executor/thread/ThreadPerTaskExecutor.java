@@ -1,4 +1,4 @@
-package com.cc.cetty.event.executor;
+package com.cc.cetty.event.executor.thread;
 
 import com.cc.cetty.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;

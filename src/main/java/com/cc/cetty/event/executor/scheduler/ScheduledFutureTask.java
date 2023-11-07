@@ -1,6 +1,7 @@
 package com.cc.cetty.event.executor.scheduler;
 
 import com.cc.cetty.async.promise.PromiseTask;
+import com.cc.cetty.event.executor.AbstractScheduledEventExecutor;
 import com.cc.cetty.event.executor.EventExecutor;
 import com.cc.cetty.priority.DefaultPriorityQueue;
 import com.cc.cetty.priority.PriorityQueueNode;
@@ -30,7 +31,7 @@ public final class ScheduledFutureTask<V> extends PromiseTask<V> implements Sche
     /**
      * 当前时间减去开始时间
      */
-    static long nanoTime() {
+    public static long nanoTime() {
         return System.nanoTime() - START_TIME;
     }
 
@@ -60,7 +61,7 @@ public final class ScheduledFutureTask<V> extends PromiseTask<V> implements Sche
 
     private int queueIndex = INDEX_NOT_IN_QUEUE;
 
-    ScheduledFutureTask(AbstractScheduledEventExecutor executor, Runnable runnable, V result, long nanoTime) {
+    public ScheduledFutureTask(AbstractScheduledEventExecutor executor, Runnable runnable, V result, long nanoTime) {
         // 这个nanoTime参数需要调用deadlineNanos方法来确定，而deadlineNanos方法在AbstractScheduledEventExecutor类中被调用了
         // 该构造器创建的定时任务只执行一次
         this(executor, toCallable(runnable, result), nanoTime);
@@ -76,7 +77,7 @@ public final class ScheduledFutureTask<V> extends PromiseTask<V> implements Sche
         periodNanos = period;
     }
 
-    ScheduledFutureTask(AbstractScheduledEventExecutor executor, Callable<V> callable, long nanoTime) {
+    public ScheduledFutureTask(AbstractScheduledEventExecutor executor, Callable<V> callable, long nanoTime) {
         super(executor, callable);
         deadlineNanos = nanoTime;
         // 在这里属性被赋值了，0就代表着该定时任务不会被重复执行
@@ -211,7 +212,7 @@ public final class ScheduledFutureTask<V> extends PromiseTask<V> implements Sche
     /**
      * 取消该任务，但不从任务队列中移除
      */
-    boolean cancelWithoutRemove(boolean mayInterruptIfRunning) {
+    public boolean cancelWithoutRemove(boolean mayInterruptIfRunning) {
         return super.cancel(mayInterruptIfRunning);
     }
 

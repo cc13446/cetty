@@ -6,6 +6,7 @@ import com.cc.cetty.channel.async.promise.ChannelPromise;
 import com.cc.cetty.channel.async.promise.DefaultChannelPromise;
 import com.cc.cetty.event.executor.EventExecutor;
 import com.cc.cetty.event.executor.EventExecutorGroup;
+import com.cc.cetty.pipeline.exception.ChannelPipelineException;
 import com.cc.cetty.pipeline.handler.ChannelHandler;
 import com.cc.cetty.pipeline.handler.ChannelHandlerAdapter;
 import com.cc.cetty.pipeline.handler.ChannelInboundHandler;

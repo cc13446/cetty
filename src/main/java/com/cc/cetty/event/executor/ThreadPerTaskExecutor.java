@@ -26,6 +26,6 @@ public class ThreadPerTaskExecutor implements Executor {
     @Override
     public void execute(Runnable command) {
         threadFactory.newThread(command).start();
-        log.info("创建线程");
+        log.info("New thread");
     }
 }
